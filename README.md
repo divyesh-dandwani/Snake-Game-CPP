@@ -45,5 +45,3 @@ The game features a grid-based play area, a growing snake, random food spawning,
   - Restart / Exit option
 
 ---
-
-## 📂 Project Structure (Planned)
