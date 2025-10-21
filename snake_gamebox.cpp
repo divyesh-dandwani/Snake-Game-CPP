@@ -9,12 +9,17 @@ int main() {
     int snakePosY = 10;
     int snakeLength = 3;
 
+    int foodX = 30;
+    int foodY = 12;
+
     for (int row = 0; row < BOX_HEIGHT; ++row) {
         for (int col = 0; col < BOX_WIDTH; ++col) {
             if (row == 0 || row == BOX_HEIGHT - 1 || col == 0 || col == BOX_WIDTH - 1)
                 cout << '#';
             else if (row == snakePosY && col >= snakePosX && col < snakePosX + snakeLength)
                 cout << 'O';
+            else if (row == foodY && col == foodX)
+                cout << 'F';
             else
                 cout << ' ';
         }
