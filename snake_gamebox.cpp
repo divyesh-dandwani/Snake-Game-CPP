@@ -1,12 +1,13 @@
 #include <iostream>
-using namespace std;    
-int main() {
-    const int BOX_HEIGHT = 12;
-    const int BOX_WIDTH = 30;
+using namespace std;
 
-    int snakePosX = 5;
-    int snakePosY = 5;
-    int snakeLength = 6;
+int main() {
+    const int BOX_HEIGHT = 20;
+    const int BOX_WIDTH = 50;
+
+    int snakePosX = 10;
+    int snakePosY = 10;
+    int snakeLength = 3;
 
     for (int row = 0; row < BOX_HEIGHT; ++row) {
         for (int col = 0; col < BOX_WIDTH; ++col) {
@@ -22,6 +23,7 @@ int main() {
 
     return 0;
 }
+
 
 
 
