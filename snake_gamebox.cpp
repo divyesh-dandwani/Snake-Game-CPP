@@ -1,6 +1,8 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
+#include <ctime>
 using namespace std;
 
 int main() {
@@ -11,8 +13,9 @@ int main() {
     int snakePosY = 10;
     int snakeLength = 3;
 
-    int foodX = 30;
-    int foodY = 12;
+    srand(time(0));
+    int foodX = rand() % (BOX_WIDTH - 2) + 1;
+    int foodY = rand() % (BOX_HEIGHT - 2) + 1;
 
     char dir = 'd';
 
@@ -45,6 +48,12 @@ int main() {
         if (snakePosX + snakeLength >= BOX_WIDTH - 1) snakePosX = BOX_WIDTH - snakeLength - 1;
         if (snakePosY <= 0) snakePosY = 1;
         if (snakePosY >= BOX_HEIGHT - 1) snakePosY = BOX_HEIGHT - 2;
+
+        if (snakePosY == foodY && snakePosX <= foodX && foodX < snakePosX + snakeLength) {
+            snakeLength++;
+            foodX = rand() % (BOX_WIDTH - 2) + 1;
+            foodY = rand() % (BOX_HEIGHT - 2) + 1;
+        }
 
         this_thread::sleep_for(chrono::milliseconds(200));
     }
