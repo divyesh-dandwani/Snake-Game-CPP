@@ -18,8 +18,9 @@ int main() {
     int foodY = rand() % (BOX_HEIGHT - 2) + 1;
 
     char dir = 'd';
+    bool gameOver = false;
 
-    while (true) {
+    while (!gameOver) {
         system("cls");
 
         for (int row = 0; row < BOX_HEIGHT; ++row) {
@@ -44,22 +45,28 @@ int main() {
         else if (dir == 'a') snakePosX--;
         else if (dir == 'd') snakePosX++;
 
-        if (snakePosX <= 0) snakePosX = 1;
-        if (snakePosX + snakeLength >= BOX_WIDTH - 1) snakePosX = BOX_WIDTH - snakeLength - 1;
-        if (snakePosY <= 0) snakePosY = 1;
-        if (snakePosY >= BOX_HEIGHT - 1) snakePosY = BOX_HEIGHT - 2;
-
         if (snakePosY == foodY && snakePosX <= foodX && foodX < snakePosX + snakeLength) {
             snakeLength++;
             foodX = rand() % (BOX_WIDTH - 2) + 1;
             foodY = rand() % (BOX_HEIGHT - 2) + 1;
         }
 
+        if (snakePosX <= 0 || snakePosX + snakeLength >= BOX_WIDTH - 1 || snakePosY <= 0 || snakePosY >= BOX_HEIGHT - 1) {
+            gameOver = true;
+        }
+
         this_thread::sleep_for(chrono::milliseconds(200));
     }
 
+    system("cls");
+    cout << "\n\n\tGame Over!\n\n";
+
     return 0;
 }
+
+
+
+
 
 
 
