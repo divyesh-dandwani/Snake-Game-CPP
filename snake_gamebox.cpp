@@ -12,6 +12,7 @@ int main() {
     int snakePosX = 10;
     int snakePosY = 10;
     int snakeLength = 3;
+    int score = 0;
 
     srand(time(0));
     int foodX = rand() % (BOX_WIDTH - 2) + 1;
@@ -22,6 +23,7 @@ int main() {
 
     while (!gameOver) {
         system("cls");
+        cout << "Score: " << score << "\n\n";
 
         for (int row = 0; row < BOX_HEIGHT; ++row) {
             for (int col = 0; col < BOX_WIDTH; ++col) {
@@ -47,6 +49,7 @@ int main() {
 
         if (snakePosY == foodY && snakePosX <= foodX && foodX < snakePosX + snakeLength) {
             snakeLength++;
+            score++;
             foodX = rand() % (BOX_WIDTH - 2) + 1;
             foodY = rand() % (BOX_HEIGHT - 2) + 1;
         }
@@ -59,18 +62,10 @@ int main() {
     }
 
     system("cls");
-    cout << "\n\n\tGame Over!\n\n";
+    cout << "\n\n\tGame Over!\n";
+    cout << "\tFinal Score: " << score << "\n\n";
 
     return 0;
 }
-
-
-
-
-
-
-
-
-
 
 
