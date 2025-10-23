@@ -11,6 +11,11 @@ struct Point {
     int y;
 };
 
+void gotoXY(int x, int y) {
+    COORD coord = { (SHORT)x, (SHORT)y };
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+}
+
 int main() {
     const int BOX_HEIGHT = 20;
     const int BOX_WIDTH = 50;
@@ -27,15 +32,7 @@ int main() {
     bool gameOver = false;
 
     while (!gameOver) {
-        if (_kbhit()) {
-            char key = _getch();
-            if (key == 'w' && dir != 's') dir = 'w';
-            else if (key == 's' && dir != 'w') dir = 's';
-            else if (key == 'a' && dir != 'd') dir = 'a';
-            else if (key == 'd' && dir != 'a') dir = 'd';
-        }
-
-        system("cls");
+        gotoXY(0, 0);
         cout << "Score: " << score << "\n\n";
 
         for (int row = 0; row < BOX_HEIGHT; ++row) {
@@ -61,19 +58,25 @@ int main() {
             cout << '\n';
         }
 
+        if (_kbhit()) {
+            char key = _getch();
+            if (key == 'w' && dir != 's') dir = 'w';
+            else if (key == 's' && dir != 'w') dir = 's';
+            else if (key == 'a' && dir != 'd') dir = 'a';
+            else if (key == 'd' && dir != 'a') dir = 'd';
+        }
+
         Point newHead = snake[0];
         if (dir == 'w') newHead.y--;
         else if (dir == 's') newHead.y++;
         else if (dir == 'a') newHead.x--;
         else if (dir == 'd') newHead.x++;
 
-        if (newHead.x <= 0 || newHead.x >= BOX_WIDTH - 1 || newHead.y <= 0 || newHead.y >= BOX_HEIGHT - 1) {
+        if (newHead.x <= 0 || newHead.x >= BOX_WIDTH - 1 || newHead.y <= 0 || newHead.y >= BOX_HEIGHT - 1)
             gameOver = true;
-        }
         for (auto s : snake) {
-            if (newHead.x == s.x && newHead.y == s.y) {
+            if (newHead.x == s.x && newHead.y == s.y)
                 gameOver = true;
-            }
         }
 
         snake.insert(snake.begin(), newHead);
@@ -89,7 +92,7 @@ int main() {
         Sleep(150);
     }
 
-    system("cls");
+    gotoXY(0, BOX_HEIGHT + 2);
     cout << "\n\n\tGame Over!\n";
     cout << "\tFinal Score: " << score << "\n\n";
 
