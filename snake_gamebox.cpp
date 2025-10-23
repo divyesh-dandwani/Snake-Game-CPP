@@ -1,6 +1,6 @@
 #include <iostream>
-#include <thread>
-#include <chrono>
+#include <conio.h>
+#include <windows.h>
 #include <vector>
 #include <cstdlib>
 #include <ctime>
@@ -27,6 +27,14 @@ int main() {
     bool gameOver = false;
 
     while (!gameOver) {
+        if (_kbhit()) {
+            char key = _getch();
+            if (key == 'w' && dir != 's') dir = 'w';
+            else if (key == 's' && dir != 'w') dir = 's';
+            else if (key == 'a' && dir != 'd') dir = 'a';
+            else if (key == 'd' && dir != 'a') dir = 'd';
+        }
+
         system("cls");
         cout << "Score: " << score << "\n\n";
 
@@ -53,9 +61,6 @@ int main() {
             cout << '\n';
         }
 
-        if (cin.peek() != '\n') cin >> dir;
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
-
         Point newHead = snake[0];
         if (dir == 'w') newHead.y--;
         else if (dir == 's') newHead.y++;
@@ -76,12 +81,12 @@ int main() {
             score++;
             food.x = rand() % (BOX_WIDTH - 2) + 1;
             food.y = rand() % (BOX_HEIGHT - 2) + 1;
+            snakeLength++;
         } else {
             while (snake.size() > snakeLength) snake.pop_back();
         }
-        snakeLength = snake.size();
 
-        this_thread::sleep_for(chrono::milliseconds(200));
+        Sleep(150);
     }
 
     system("cls");
@@ -90,3 +95,4 @@ int main() {
 
     return 0;
 }
+
