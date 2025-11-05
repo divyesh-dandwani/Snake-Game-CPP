@@ -1,47 +1,54 @@
 # 🐍 Snake Game in C++
 
-A classic Snake Game implemented in **C++** using **Object-Oriented Programming (OOP)** principles.  
-The game features a grid-based play area, a growing snake, random food spawning, collision detection, score tracking, and restart options.  
+A **terminal-based Snake Game** built in **C++**, featuring difficulty selection, random obstacle clusters, smooth movement, and player-controlled speed — all running directly in the Windows Command Prompt.
 
 ---
 
 ## 🎮 Features
-- Grid-based game board (NxN cells).
-- Snake starts with a length of 3.
-- Food spawns randomly (never on the snake’s body).
-- Snake grows by 1 cell after eating food.
-- Score increases with each food item consumed.
-- Game Over on:
-  - Snake colliding with itself.
-  - Snake hitting the boundaries.
-- Displays current score during the game.
-- Shows **final score** and **highest score** on Game Over.
-- Option to restart or exit after Game Over.
-
----
-
-## ⚙️ Technical Details
-- **Language**: C++
-- **Concepts Used**:
-  - **Classes & Objects** → Snake, Food, GameBoard
-  - **Encapsulation** → Managing game logic in classes
-  - **Data Structures**:
-    - Queue / Linked List → Snake body
-    - 2D Array → Grid
-  - **Game Loop** → Continuous movement and input handling
-- **Extensible Design**:
-  - Can be extended with obstacles, multiple levels, or special food.
+- Choose from **Easy / Medium / Hard** difficulty levels.  
+- **Dynamic obstacle clusters** make every game unique.  
+- **WASD** and **Arrow keys** supported for movement.  
+- **+ / -** to control snake speed during gameplay.  
+- **Score display**, **restart**, and **quit** options.  
+- Smooth, flicker-free console rendering.
 
 ---
 
 ## ✅ Acceptance Criteria
-- Smooth snake movement with keyboard controls (W/A/S/D or arrow keys).
-- Snake grows and score updates correctly on eating food.
-- Food never spawns on snake body.
-- Correct collision detection (self + boundary).
-- Game Over screen shows:
-  - Final score
-  - Highest score
-  - Restart / Exit option
+- Smooth snake movement with keyboard controls (**W/A/S/D** or **Arrow keys**).  
+- Snake grows and score updates correctly after eating food.  
+- Food never spawns on snake body or obstacles.  
+- Accurate collision detection (self, walls, or obstacles).  
+- Game Over screen displays:
+  - Final score  
+  - Restart / Exit option  
 
 ---
+
+## ⚙️ Technical Overview
+- Written in **C++** using only standard libraries and `windows.h`.  
+- Uses **vectors** for snake body and obstacle management.  
+- **Procedural generation** for clustered obstacles and food placement.  
+- Frame timing handled with **chrono** for consistent movement.  
+- Designed for **pure terminal gameplay** — no external IDE graphics.
+
+---
+
+## 🕹️ Controls
+
+| Key | Action |
+|-----|--------|
+| **W / ↑** | Move Up |
+| **A / ←** | Move Left |
+| **S / ↓** | Move Down |
+| **D / →** | Move Right |
+| **+ / -** | Speed Up / Slow Down |
+| **R** | Restart Game |
+| **Q** | Quit Game |
+
+---
+
+## 🚀 How to Run
+```bash
+g++ snake.cpp -o snake
+snake
