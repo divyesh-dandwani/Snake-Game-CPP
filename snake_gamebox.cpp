@@ -260,19 +260,31 @@ int selectTheme() {
             Terminal::gotoXY(25, 5);
             cout << "╚═══════════════════════════════╝";
             
-            for (int i = 0; i < (int)themes.size(); i++) {
-                Terminal::gotoXY(25, 8 + i * 2);
-                if (i == index) {
-                    Terminal::setColor(15);
-                    cout << "► ";
-                } else {
-                    Terminal::setColor(8);
-                    cout << "  ";
-                }
-                Terminal::setColor(themes[i].uiColor);
-                cout << themes[i].name;
-            }
+            // for (int i = 0; i < (int)themes.size(); i++) {
+            //     Terminal::gotoXY(25, 8 + i * 2);
+            //     if (i == index) {
+            //         Terminal::setColor(15);
+            //         cout << "► ";
+            //     } else {
+            //         Terminal::setColor(8);
+            //         cout << "  ";
+            //     }
+            //     Terminal::setColor(themes[i].uiColor);
+            //     cout << themes[i].name;
+            // }
             
+            for (int i = 0; i < (int)themes.size(); i++) {
+    Terminal::gotoXY(25, 8 + i * 2);
+
+    if (i == index) {
+        Terminal::setColor(14);   // bright yellow for selected theme
+        cout << "► " << themes[i].name;
+    } else {
+        Terminal::setColor(8);    // dim gray for unselected
+        cout << "  " << themes[i].name;
+    }
+}
+
             Terminal::gotoXY(20, 20);
             Terminal::setColor(10);
             cout << "↑↓ Navigate  │  ENTER Select  │  Q Quit";
@@ -410,7 +422,12 @@ int main() {
         vector<Point> blocks = generateBlocks(W, H, 6, 3, 6, 6);
         drawBlocks(blocks, OX, OY, cur.blockColor);
         
-        vector<Point> snake = {{15, 10}};
+        // vector<Point> snake = {{15, 10}};
+        vector<Point> snake = {
+    {15, 10},   // head
+    {14, 10}    // one more segment behind head
+    // you can also add {13, 10} for a 3-block start
+};
         int len = 3, score = 0;
         Point food = generateFood(W, H, snake, blocks);
         char dir = 'd';
