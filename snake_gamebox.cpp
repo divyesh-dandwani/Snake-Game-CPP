@@ -5,390 +5,337 @@
 #include <cstdlib>
 #include <ctime>
 #include <chrono>
+#include <string>
 using namespace std;
-using namespace std::chrono;
 
-struct Point
-{
-    int x;
-    int y;
-};
+struct Point { int x; int y; };
 
 HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
 
-void gotoXY(int x, int y)
-{
+void gotoXY(int x, int y) {
     COORD coord = {(SHORT)x, (SHORT)y};
     SetConsoleCursorPosition(console, coord);
 }
+void setColor(int color) { SetConsoleTextAttribute(console, color); }
+void hideCursor() { CONSOLE_CURSOR_INFO c; GetConsoleCursorInfo(console, &c); c.bVisible = false; SetConsoleCursorInfo(console, &c); }
 
-void hideCursor()
-{
-    CONSOLE_CURSOR_INFO cursorInfo;
-    GetConsoleCursorInfo(console, &cursorInfo);
-    cursorInfo.bVisible = false;
-    SetConsoleCursorInfo(console, &cursorInfo);
-}
-
-void setupConsole()
-{
-    system("mode 120, 40"); // ✅ Wider console
-    system("color 0A");
+void setupConsole() {
+    system("chcp 65001 >nul");
+    SetConsoleOutputCP(65001);
+    system("mode 120, 40");
     hideCursor();
 }
 
-// Draw static box (border only)
-void drawBox(int BOX_WIDTH, int BOX_HEIGHT, int OFFSET_X, int OFFSET_Y)
-{
-    for (int row = 0; row < BOX_HEIGHT; ++row)
-    {
-        for (int col = 0; col < BOX_WIDTH; ++col)
-        {
-            gotoXY(col + OFFSET_X, row + OFFSET_Y);
-            if (row == 0 || row == BOX_HEIGHT - 1 || col == 0 || col == BOX_WIDTH - 1)
-                cout << '#';
-            else
-                cout << ' ';
-        }
-    }
-}
+// ---------- Theme structure ----------
+struct Theme {
+    string name;
+    int wallColor;
+    int blockColor;
+    int headColor;
+    int bodyColor;
+    int foodColor;
+    int uiColor;
+    string foodChar;
 
-// Generate random blocks (obstacles)
-// vector<Point> generateBlocks(int BOX_WIDTH, int BOX_HEIGHT, int count)
-// {
-//     vector<Point> blocks;
-//     for (int i = 0; i < count; i++)
-//     {
-//         Point b;
-//         b.x = rand() % (BOX_WIDTH - 2) + 1;
-//         b.y = rand() % (BOX_HEIGHT - 2) + 1;
-//         blocks.push_back(b);
-//     }
-//     return blocks;
-// }
+    Theme(string n,int w,int b,int h,int bo,int f,int ui,string fc)
+        : name(n), wallColor(w), blockColor(b), headColor(h),
+          bodyColor(bo), foodColor(f), uiColor(ui), foodChar(fc) {}
+};
 
-vector<Point> generateBlocks(int BOX_WIDTH, int BOX_HEIGHT, int clusterCount,
-                             int blockMin, int blockMax, int spacingMin)
-{
+vector<Theme> themes = {
+    Theme("Neon Tech", 11, 8, 14, 10, 12, 15, "@"),
+    Theme("Inferno",   12, 8, 12, 6, 12, 14, "@"),
+    Theme("Jungle",    10, 8, 10, 2, 12, 15, "@"),
+    Theme("Ice",        9, 8,  9, 11,  3, 15, "@"),
+    Theme("Retro",      6, 8, 14, 10, 13, 15, "@")
+};
+
+int currentThemeIndex = 0;
+bool padmaMode = false;
+
+// ---------- Utility ----------
+void msleep(int ms) { Sleep(ms); }
+
+vector<Point> generateBlocks(int w, int h, int clusterCount, int blockMin, int blockMax, int spacingMin) {
     vector<Point> blocks;
-
-    for (int i = 0; i < clusterCount; i++)
-    {
+    for (int i = 0; i < clusterCount; i++) {
         bool valid = false;
-        Point center;
-
-        // choose cluster center with spacing
-        while (!valid)
-        {
+        Point c;
+        while (!valid) {
             valid = true;
-            center.x = rand() % (BOX_WIDTH - 8) + 4;
-            center.y = rand() % (BOX_HEIGHT - 8) + 4;
-            for (auto b : blocks)
-                if (abs(center.x - b.x) < spacingMin && abs(center.y - b.y) < spacingMin)
+            c.x = rand() % (w - 8) + 4;
+            c.y = rand() % (h - 8) + 4;
+            for (auto &b : blocks)
+                if (abs(c.x - b.x) < spacingMin && abs(c.y - b.y) < spacingMin)
                     valid = false;
         }
-
-        int pattern = rand() % 4; // 0=L, 1=U, 2=T, 3=line
-        int blockCount = rand() % (blockMax - blockMin + 1) + blockMin;
-
-        for (int j = 0; j < blockCount; j++)
-        {
-            Point p = center;
-            switch (pattern)
-            {
-            case 0:
-                p.x += (j < 2 ? j : 0);
-                p.y += (j < 2 ? 0 : j - 1);
-                break; // L
-            case 1:
-                p.x += (j < 3 ? j : 1);
-                p.y += (j < 3 ? 0 : j - 2);
-                break; // U
-            case 2:
-                p.x += (j == 0 ? -1 : (j == 1 ? 0 : 1));
-                p.y += (j < 3 ? 0 : 1);
-                break; // T
-            case 3:
-                p.x += j;
-                break; // line
+        int pattern = rand() % 4;
+        int count = rand() % (blockMax - blockMin + 1) + blockMin;
+        for (int j = 0; j < count; j++) {
+            Point p = c;
+            switch (pattern) {
+            case 0: p.x += (j < 2 ? j : 0); p.y += (j < 2 ? 0 : j - 1); break;
+            case 1: p.x += (j < 3 ? j : 1); p.y += (j < 3 ? 0 : j - 2); break;
+            case 2: p.x += (j == 0 ? -1 : (j == 1 ? 0 : 1)); p.y += (j < 3 ? 0 : 1); break;
+            default: p.x += j; break;
             }
-
-            if (p.x > 0 && p.x < BOX_WIDTH - 1 && p.y > 0 && p.y < BOX_HEIGHT - 1)
+            if (p.x > 0 && p.x < w - 1 && p.y > 0 && p.y < h - 1)
                 blocks.push_back(p);
         }
     }
     return blocks;
 }
 
-// Draw blocks
-void drawBlocks(const vector<Point> &blocks, int OFFSET_X, int OFFSET_Y)
-{
-    for (auto b : blocks)
-    {
-        gotoXY(b.x + OFFSET_X, b.y + OFFSET_Y);
-        cout << '#';
-    }
+void drawBlocks(const vector<Point> &blocks, int ox, int oy, int color) {
+    setColor(color);
+    for (auto &b : blocks) { gotoXY(b.x + ox, b.y + oy); cout << "▒"; }
+    setColor(15);
 }
 
-// Check collision with blocks
-bool hitBlock(const vector<Point> &blocks, const Point &head)
-{
-    for (auto b : blocks)
-        if (b.x == head.x && b.y == head.y)
-            return true;
+bool hitBlock(const vector<Point> &blocks, const Point &h) {
+    for (auto &b : blocks) if (b.x == h.x && b.y == h.y) return true;
     return false;
 }
 
-// Generate food not inside snake or block
-Point generateFood(int BOX_WIDTH, int BOX_HEIGHT, const vector<Point> &snake, const vector<Point> &blocks)
-{
-    Point f;
-    bool valid = false;
-    while (!valid)
-    {
-        f.x = rand() % (BOX_WIDTH - 2) + 1;
-        f.y = rand() % (BOX_HEIGHT - 2) + 1;
-        valid = true;
-        for (auto s : snake)
-            if (s.x == f.x && s.y == f.y)
-                valid = false;
-        for (auto b : blocks)
-            if (b.x == f.x && b.y == f.y)
-                valid = false;
+Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point> &blocks) {
+    Point f; bool ok = false;
+    while (!ok) {
+        ok = true;
+        f.x = rand() % (w - 2) + 1;
+        f.y = rand() % (h - 2) + 1;
+        for (auto &s : snake) if (s.x == f.x && s.y == f.y) ok = false;
+        for (auto &b : blocks) if (b.x == f.x && b.y == f.y) ok = false;
     }
     return f;
 }
 
-int main()
-{
+void drawBox(int w, int h, int ox, int oy, int color) {
+    setColor(color);
+    for (int r = 0; r < h; r++) {
+        for (int c = 0; c < w; c++) {
+            gotoXY(c + ox, r + oy);
+            if (r == 0 || r == h - 1 || c == 0 || c == w - 1)
+                cout << "█";
+            else
+                cout << " ";
+        }
+    }
+    setColor(15);
+}
+
+// ---------- Simple Theme Selection ----------
+int selectTheme() {
+    int index = 0;
+    bool changed = true;
+
+    while (true) {
+        if (changed) {
+            system("cls");
+            gotoXY(0, 3);
+            setColor(15);
+            cout << "\n\n\t\tSelect a Theme:\n\n";
+
+            for (int i = 0; i < (int)themes.size(); i++) {
+                gotoXY(25, 7 + i);
+                if (i == index) {
+                    setColor(15);
+                    cout << "> ";
+                } else {
+                    cout << "  ";
+                }
+
+                // theme name in its unique color
+                setColor(themes[i].uiColor);
+                cout << themes[i].name;
+            }
+
+            setColor(15);
+            gotoXY(0, 14);
+            cout << "\n\n\tUse ↑ ↓ to navigate  |  Press ENTER to select";
+            changed = false;
+        }
+
+        if (_kbhit()) {
+            char ch = _getch();
+            if (ch == -32 || ch == 224) {
+                ch = _getch();
+                if (ch == 72) { // up
+                    index = (index - 1 + themes.size()) % themes.size();
+                    changed = true;
+                } else if (ch == 80) { // down
+                    index = (index + 1) % themes.size();
+                    changed = true;
+                }
+            } else if (ch == 13) {
+                return index; // Enter
+            }
+        }
+        Sleep(60);
+    }
+}
+
+
+// ---------- UI + Title ----------
+void showAnimatedTitle(const Theme &t) {
+    system("cls");
+    vector<string> lines = {
+        " ███████╗ ███╗   ██╗ █████╗ ██╗  ██╗███████╗ ",
+        " ██╔════╝ ████╗  ██║██╔══██╗██║ ██╔╝██╔════╝ ",
+        " ███████╗ ██╔██╗ ██║███████║█████╔╝ █████╗   ",
+        " ╚════██║ ██║╚██╗██║██╔══██║██╔═██╗ ██╔══╝   ",
+        " ███████║ ██║ ╚████║██║  ██║██║  ██╗███████╗ ",
+        " ╚══════╝ ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ "
+    };
+    int x = 8, y = 3;
+    for (int i = 0; i < (int)lines.size(); i++) {
+        setColor(t.uiColor);
+        gotoXY(x, y + i);
+        cout << lines[i];
+        msleep(50);
+    }
+    setColor(t.foodColor);
+    gotoXY(x + 10, y + (int)lines.size() + 1);
+    cout << "   S N A K E   G A M E   2 0 2 5   @  Classic Deluxe Edition";
+    setColor(15);
+    gotoXY(x, y + (int)lines.size() + 4);
+    cout << "\tPress any key to continue...";
+    _getch();
+}
+
+void showScoreboard(int score, int speed, const Theme &t) {
+    setColor(t.uiColor);
+    gotoXY(0, 0);
+    cout << "╔════════════════════════════════════════════════════════════════════════╗";
+    gotoXY(0, 1);
+    cout << "║ SCORE: "; setColor(t.bodyColor); cout << score;
+    setColor(t.uiColor);
+    cout << "   SPEED: "; setColor(t.headColor); cout << speed << "/10   ";
+    setColor(t.uiColor);
+    cout << " THEME: " << t.name;
+    gotoXY(0, 2);
+    cout << "║ CONTROLS: W/A/S/D | [+/-] Speed | [P] Padma | [Q] Quit ║";
+    gotoXY(0, 3);
+    cout << "╚════════════════════════════════════════════════════════════════════════╝";
+    setColor(15);
+}
+
+void playGameOverTune() {
+    vector<pair<int,int>> n = {
+        {659,120},{523,180},{440,300},{0,80},
+        {440,120},{0,60},{330,400},{0,80},
+        {220,300},{0,80},{196,250},{0,50},{176,200}
+    };
+    for (auto &x : n) {
+        if (x.first>0) Beep(x.first,x.second);
+        else Sleep(x.second);
+    }
+}
+
+int main() {
+    srand((unsigned)time(0));
     setupConsole();
 
-    const int BOX_HEIGHT = 25;
-    const int BOX_WIDTH = 80;
-    const int OFFSET_X = 10;
-    const int OFFSET_Y = 3;
+    currentThemeIndex = selectTheme();
+    Theme cur = themes[currentThemeIndex];
+    showAnimatedTitle(cur);
 
-    int difficultyLevel = 1;
-    while (true)
-    {
+    const int H=25,W=80,OX=10,OY=5;
+    bool again=true;
+    while(again){
         system("cls");
-        cout << "\n\n\tSelect Difficulty:\n";
-        cout << "\t[1] Easy\n";
-        cout << "\t[2] Medium\n";
-        cout << "\t[3] Hard\n\n";
-        cout << "\tChoice: ";
-        char ch = _getch();
-        if (ch == '1' || ch == '2' || ch == '3')
-        {
-            difficultyLevel = ch - '0';
-            break;
-        }
-    }
+        drawBox(W,H,OX,OY,cur.wallColor);
+        vector<Point> blocks = generateBlocks(W,H,5,3,5,6);
+        drawBlocks(blocks,OX,OY,cur.blockColor);
 
-    system("cls");
-    cout << "\n\n\tYou chose: "
-         << (difficultyLevel == 1 ? "EASY" : difficultyLevel == 2 ? "MEDIUM"
-                                                                  : "HARD")
-         << "\n\tPress any key to begin...";
-    _getch();
+        vector<Point> snake={{15,10}};
+        int len=3,score=0;
+        Point food=generateFood(W,H,snake,blocks);
+        char dir='d';
+        bool over=false;
+        int spd=5,delay=120-(spd*10);
+        auto last=chrono::steady_clock::now();
 
-    bool playAgain = true;
-
-    while (playAgain)
-    {
-        system("cls");
-        drawBox(BOX_WIDTH, BOX_HEIGHT, OFFSET_X, OFFSET_Y);
-
-        // ✅ Random obstacles
-        srand((unsigned)time(0));
-        // int blockCount = rand() % 15 + 10; // 10–25 random blocks
-        int clusterMin, clusterMax, blockMin, blockMax, spacingMin;
-
-        if (difficultyLevel == 1)
-        { // Easy
-            clusterMin = 3;
-            clusterMax = 4;
-            blockMin = 2;
-            blockMax = 4;
-            spacingMin = 8;
-        }
-        else if (difficultyLevel == 2)
-        { // Medium
-            clusterMin = 5;
-            clusterMax = 6;
-            blockMin = 3;
-            blockMax = 5;
-            spacingMin = 6;
-        }
-        else
-        { // Hard
-            clusterMin = 7;
-            clusterMax = 9;
-            blockMin = 4;
-            blockMax = 6;
-            spacingMin = 4;
-        }
-
-        int clusterCount = rand() % (clusterMax - clusterMin + 1) + clusterMin;
-
-        vector<Point> blocks = generateBlocks(BOX_WIDTH, BOX_HEIGHT,
-                                              clusterCount, blockMin, blockMax, spacingMin);
-
-        drawBlocks(blocks, OFFSET_X, OFFSET_Y);
-
-        vector<Point> snake;
-        snake.push_back({15, 10});
-        int snakeLength = 3;
-        int score = 0;
-
-        Point food = generateFood(BOX_WIDTH, BOX_HEIGHT, snake, blocks);
-
-        char dir = 'd';
-        bool gameOver = false;
-
-        int speedLevel = 5; // Default medium speed
-        int delay = 120 - (speedLevel * 10);
-
-        auto lastMoveTime = steady_clock::now();
-
-        while (!gameOver)
-        {
-            gotoXY(0, 0);
-            cout << "Score: " << score;
-            cout << "   Speed: " << speedLevel << "/10";
-            cout << "   Controls: [WASD / Arrows] Move | [+/-] Speed | [Q] Quit";
-
-            // Handle input
-            if (_kbhit())
-            {
-                char key = _getch();
-                if (key == -32 || key == 224)
-                {
-                    key = _getch();
-                    if (key == 72 && dir != 's')
-                        dir = 'w';
-                    else if (key == 80 && dir != 'w')
-                        dir = 's';
-                    else if (key == 75 && dir != 'd')
-                        dir = 'a';
-                    else if (key == 77 && dir != 'a')
-                        dir = 'd';
-                }
-                else
-                {
-                    if ((key == 'w' || key == 'W') && dir != 's')
-                        dir = 'w';
-                    else if ((key == 's' || key == 'S') && dir != 'w')
-                        dir = 's';
-                    else if ((key == 'a' || key == 'A') && dir != 'd')
-                        dir = 'a';
-                    else if ((key == 'd' || key == 'D') && dir != 'a')
-                        dir = 'd';
-                    else if (key == '+' || key == '=')
-                    {
-                        if (speedLevel < 10)
-                            speedLevel++;
-                    }
-                    else if (key == '-')
-                    {
-                        if (speedLevel > 1)
-                            speedLevel--;
-                    }
-                    else if (key == 'q' || key == 'Q')
-                    {
-                        playAgain = false;
-                        gameOver = true;
-                        break;
-                    }
+        while(!over){
+            showScoreboard(score,spd,cur);
+            if(_kbhit()){
+                char k=_getch();
+                if(k==-32||k==224){
+                    k=_getch();
+                    if(k==72&&dir!='s')dir='w';
+                    else if(k==80&&dir!='w')dir='s';
+                    else if(k==75&&dir!='d')dir='a';
+                    else if(k==77&&dir!='a')dir='d';
+                }else{
+                    if((k=='w'||k=='W')&&dir!='s')dir='w';
+                    else if((k=='s'||k=='S')&&dir!='w')dir='s';
+                    else if((k=='a'||k=='A')&&dir!='d')dir='a';
+                    else if((k=='d'||k=='D')&&dir!='a')dir='d';
+                    else if(k=='+'||k=='='){if(spd<10)spd++;}
+                    else if(k=='-'){if(spd>1)spd--;}
+                    else if(k=='q'||k=='Q'){again=false;over=true;break;}
+                    else if(k=='p'||k=='P'){padmaMode=!padmaMode;}
                 }
             }
 
-            delay = 120 - (speedLevel * 10);
+            delay=120-(spd*10);
+            auto now=chrono::steady_clock::now();
+            if(chrono::duration_cast<chrono::milliseconds>(now-last).count()<delay){Sleep(1);continue;}
+            last=now;
 
-            auto currentTime = steady_clock::now();
-            auto elapsed = duration_cast<milliseconds>(currentTime - lastMoveTime).count();
-            if (elapsed < delay)
-            {
-                Sleep(1);
-                continue;
-            }
-            lastMoveTime = currentTime;
+            Point tail=snake.back();
+            gotoXY(tail.x+OX,tail.y+OY); cout<<' ';
 
-            // Erase tail
-            Point tail = snake.back();
-            gotoXY(tail.x + OFFSET_X, tail.y + OFFSET_Y);
-            cout << ' ';
+            Point head=snake[0];
+            if(dir=='w')head.y--; else if(dir=='s')head.y++; else if(dir=='a')head.x--; else head.x++;
+            if(head.x<=0||head.x>=W-1||head.y<=0||head.y>=H-1)over=true;
+            if(hitBlock(blocks,head))over=true;
+            for(auto &s:snake) if(s.x==head.x&&s.y==head.y) over=true;
+            snake.insert(snake.begin(),head);
 
-            // Move head
-            Point newHead = snake[0];
-            if (dir == 'w')
-                newHead.y--;
-            else if (dir == 's')
-                newHead.y++;
-            else if (dir == 'a')
-                newHead.x--;
-            else if (dir == 'd')
-                newHead.x++;
-
-            // Collisions
-            if (newHead.x <= 0 || newHead.x >= BOX_WIDTH - 1 || newHead.y <= 0 || newHead.y >= BOX_HEIGHT - 1)
-                gameOver = true;
-            if (hitBlock(blocks, newHead))
-                gameOver = true;
-
-            for (auto s : snake)
-                if (newHead.x == s.x && newHead.y == s.y)
-                    gameOver = true;
-
-            snake.insert(snake.begin(), newHead);
-
-            // Eat food
-            if (newHead.x == food.x && newHead.y == food.y)
-            {
+            if(head.x==food.x&&head.y==food.y){
                 score++;
-                food = generateFood(BOX_WIDTH, BOX_HEIGHT, snake, blocks);
-                snakeLength++;
-            }
-            else
-            {
-                while (snake.size() > snakeLength)
-                    snake.pop_back();
+                Beep(850,70);
+                gotoXY(food.x+OX,food.y+OY); cout<<' ';
+                food=generateFood(W,H,snake,blocks);
+                len++;
+            }else{
+                while(snake.size()>len) snake.pop_back();
             }
 
-            // Draw updates
-            gotoXY(food.x + OFFSET_X, food.y + OFFSET_Y);
-            cout << '@';
-            gotoXY(newHead.x + OFFSET_X, newHead.y + OFFSET_Y);
-            cout << 'O';
+            setColor(cur.foodColor);
+            gotoXY(food.x+OX,food.y+OY);
+            cout<<cur.foodChar;
+
+            for(int i=0;i<(int)snake.size();i++){
+                gotoXY(snake[i].x+OX,snake[i].y+OY);
+                if(i==0){setColor(14);cout<<"■";}
+                else{
+                    if(padmaMode){int col=(9+(i%7))%15+1;setColor(col);cout<<"●";}
+                    else {setColor(10);cout<<"●";}
+                }
+            }
         }
 
-        if (!playAgain)
-            break;
+        for(int i=0;i<3;i++){system("color 4F");Sleep(80);system("color 0A");Sleep(80);}
+        playGameOverTune();
 
-        gotoXY(OFFSET_X, BOX_HEIGHT + OFFSET_Y + 2);
-        cout << "\n\n\t===== GAME OVER =====\n";
-        cout << "\tFinal Score: " << score << "\n\n";
-        cout << "\tPress [R] to Restart or [Q] to Quit\n";
-
-        char choice;
-        while (true)
-        {
-            choice = _getch();
-            if (choice == 'r' || choice == 'R')
-            {
-                playAgain = true;
-                break;
-            }
-            else if (choice == 'q' || choice == 'Q')
-            {
-                playAgain = false;
-                break;
-            }
+        gotoXY(OX,H+OY+2);
+        setColor(12);
+        cout<<"\n\n\t===== GAME OVER =====\n";
+        setColor(15);
+        cout<<"\tFinal Score: "; setColor(10); cout<<score<<"\n\n";
+        setColor(14);
+        cout<<"\tPress [R] Restart or [Q] Quit\n";
+        char ch;
+        while(true){
+            ch=_getch();
+            if(ch=='r'||ch=='R'){again=true;break;}
+            else if(ch=='q'||ch=='Q'){again=false;break;}
         }
     }
-
     system("cls");
-    cout << "Thank you for playing Snake Game!\n";
-    cout << "Returning to your command prompt...\n\n";
+    setColor(10);
+    cout<<"Thank you for playing Snake Game 2025 - Padma Shree Classic Edition @!\n";
+    setColor(15);
     return 0;
 }
