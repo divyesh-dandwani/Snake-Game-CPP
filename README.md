@@ -247,8 +247,6 @@ Total Space Complexity: O(n + b)
 
 
 ## 🔮 Future Enhancements
-
-* Add a pause/resume option.
 * Save and display top scores.
 * Add multiple difficulty levels.
 * Include background music (via external library).
