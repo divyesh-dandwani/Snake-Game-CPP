@@ -21,7 +21,6 @@ using namespace std;
 
 struct Point { int x, y; };
 
-// Cross-platform utilities
 class Terminal {
 public:
     static void clear() {
@@ -31,7 +30,6 @@ public:
             system("clear");
         #endif
     }
-    
     static void hideCursor() {
         #ifdef _WIN32
             HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -44,7 +42,6 @@ public:
             cout.flush();
         #endif
     }
-    
     static void showCursor() {
         #ifdef _WIN32
             HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -57,7 +54,6 @@ public:
             cout.flush();
         #endif
     }
-    
     static void gotoXY(int x, int y) {
         #ifdef _WIN32
             COORD pos = {(SHORT)x, (SHORT)y};
@@ -67,19 +63,16 @@ public:
             cout.flush();
         #endif
     }
-    
     static void setColor(int fg, int bg = 0) {
         #ifdef _WIN32
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fg + (bg * 16));
         #else
-            // ANSI colors: 30-37 foreground, 40-47 background
             int ansi_fg = 30 + (fg % 8);
             int bright = (fg > 7) ? 1 : 0;
             cout << "\033[" << bright << ";" << ansi_fg << "m";
             cout.flush();
         #endif
     }
-    
     static void resetColor() {
         #ifdef _WIN32
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
@@ -88,7 +81,6 @@ public:
             cout.flush();
         #endif
     }
-    
     static bool kbhit() {
         #ifdef _WIN32
             return _kbhit();
@@ -100,7 +92,6 @@ public:
             return select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) > 0;
         #endif
     }
-    
     static char getChar() {
         #ifdef _WIN32
             return _getch();
@@ -108,7 +99,6 @@ public:
             return getchar();
         #endif
     }
-    
     static void setupRawMode() {
         #ifndef _WIN32
             struct termios t;
@@ -117,7 +107,6 @@ public:
             tcsetattr(STDIN_FILENO, TCSANOW, &t);
         #endif
     }
-    
     static void restoreMode() {
         #ifndef _WIN32
             struct termios t;
@@ -126,7 +115,6 @@ public:
             tcsetattr(STDIN_FILENO, TCSANOW, &t);
         #endif
     }
-    
     static void sleep_ms(int ms) {
         this_thread::sleep_for(chrono::milliseconds(ms));
     }
@@ -136,7 +124,6 @@ struct Theme {
     string name;
     int wallColor, blockColor, headColor, bodyColor, foodColor, uiColor;
     vector<string> foodEmojis;
-    
     Theme(string n, int w, int b, int h, int bo, int f, int ui, vector<string> fe)
         : name(n), wallColor(w), blockColor(b), headColor(h),
           bodyColor(bo), foodColor(f), uiColor(ui), foodEmojis(fe) {}
@@ -144,9 +131,9 @@ struct Theme {
 
 vector<Theme> themes = {
     Theme("🌟 Neon Tech", 11, 8, 14, 10, 13, 15, {"🍎", "🍊", "🍋", "🍇", "🍓"}),
-    Theme("🔥 Inferno", 12, 8, 14, 6, 9, 14, {"🌶️", "🔥", "🍖", "🥓", "🍗"}),
+    Theme("🔥 Inferno", 12, 8, 14, 6, 9, 14, {"🌶", "🔥", "🍖", "🥓", "🍗"}),
     Theme("🌿 Jungle", 10, 8, 10, 2, 13, 15, {"🍌", "🥥", "🍍", "🥭", "🍉"}),
-    Theme("❄️  Ice", 11, 8, 15, 9, 11, 15, {"🧊", "❄️", "🐟", "🦐", "🐙"}),
+    Theme("❄  Ice", 11, 8, 15, 9, 11, 15, {"🧊", "❄", "🐟", "🦐", "🐙"}),
     Theme("🎮 Retro", 14, 8, 14, 10, 13, 15, {"🍒", "🍑", "🍐", "🥝", "🫐"})
 };
 
@@ -196,37 +183,49 @@ bool hitBlock(const vector<Point> &blocks, const Point &h) {
 }
 
 Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point> &blocks) {
+    auto inside = [&](const Point& p) -> bool {
+        return p.x > 0 && p.x < w - 1 && p.y > 0 && p.y < h - 1;
+    };
+    auto occupied = [&](const Point& p) -> bool {
+        for (const auto& s : snake) if (s.x == p.x && s.y == p.y) return true;
+        for (const auto& b : blocks) if (b.x == p.x && b.y == p.y) return true;
+        return false;
+    };
+    auto freeNeighborCount = [&](const Point& p) -> int {
+        static const int dx[4] = {1, -1, 0, 0};
+        static const int dy[4] = {0, 0, 1, -1};
+        int cnt = 0;
+        for (int k = 0; k < 4; ++k) {
+            Point q{p.x + dx[k], p.y + dy[k]};
+            if (inside(q) && !occupied(q)) cnt++;
+        }
+        return cnt;
+    };
+
     Point f;
     bool ok = false;
     int attempts = 0;
+
     while (!ok && attempts < 1000) {
-        ok = true;
-        f.x = rand() % (w - 4) + 2; // More margin from walls
+        f.x = rand() % (w - 4) + 2;
         f.y = rand() % (h - 4) + 2;
-        
-        // Check walls (with extra margin)
-        if (f.x <= 1 || f.x >= w - 2 || f.y <= 1 || f.y >= h - 2) ok = false;
-        
-        // Check snake collision
-        for (auto &s : snake) {
-            if (s.x == f.x && s.y == f.y) {
-                ok = false;
-                break;
-            }
-        }
-        
-        // Check block collision
-        if (ok) {
-            for (auto &b : blocks) {
-                if (b.x == f.x && b.y == f.y) {
-                    ok = false;
-                    break;
-                }
-            }
-        }
-        attempts++;
+        if (!inside(f)) { attempts++; continue; }
+        if (occupied(f)) { attempts++; continue; }
+        if (freeNeighborCount(f) < 2) { attempts++; continue; }
+        ok = true;
     }
-    return f;
+
+    if (ok) return f;
+
+    for (int y = 1; y < h - 1; ++y)
+        for (int x = 1; x < w - 1; ++x) {
+            Point c{x, y};
+            if (!inside(c)) continue;
+            if (occupied(c)) continue;
+            if (freeNeighborCount(c) >= 2) return c;
+        }
+
+    return snake.front();
 }
 
 void drawBox(int w, int h, int ox, int oy, int color) {
@@ -248,7 +247,6 @@ void drawBox(int w, int h, int ox, int oy, int color) {
 int selectTheme() {
     int index = 0;
     bool changed = true;
-    
     while (true) {
         if (changed) {
             Terminal::clear();
@@ -256,42 +254,25 @@ int selectTheme() {
             Terminal::setColor(14);
             cout << "╔═══════════════════════════════╗";
             Terminal::gotoXY(25, 4);
-            cout << "║    SELECT YOUR THEME    ║";
+            cout << "║    SELECT YOUR THEME          ║";
             Terminal::gotoXY(25, 5);
             cout << "╚═══════════════════════════════╝";
-            
-            // for (int i = 0; i < (int)themes.size(); i++) {
-            //     Terminal::gotoXY(25, 8 + i * 2);
-            //     if (i == index) {
-            //         Terminal::setColor(15);
-            //         cout << "► ";
-            //     } else {
-            //         Terminal::setColor(8);
-            //         cout << "  ";
-            //     }
-            //     Terminal::setColor(themes[i].uiColor);
-            //     cout << themes[i].name;
-            // }
-            
             for (int i = 0; i < (int)themes.size(); i++) {
-    Terminal::gotoXY(25, 8 + i * 2);
-
-    if (i == index) {
-        Terminal::setColor(14);   // bright yellow for selected theme
-        cout << "► " << themes[i].name;
-    } else {
-        Terminal::setColor(8);    // dim gray for unselected
-        cout << "  " << themes[i].name;
-    }
-}
-
+                Terminal::gotoXY(25, 8 + i * 2);
+                if (i == index) {
+                    Terminal::setColor(14);
+                    cout << "► " << themes[i].name;
+                } else {
+                    Terminal::setColor(8);
+                    cout << "  " << themes[i].name;
+                }
+            }
             Terminal::gotoXY(20, 20);
             Terminal::setColor(10);
             cout << "↑↓ Navigate  │  ENTER Select  │  Q Quit";
             Terminal::resetColor();
             changed = false;
         }
-        
         if (Terminal::kbhit()) {
             char ch = Terminal::getChar();
             #ifdef _WIN32
@@ -323,25 +304,21 @@ void showTitle(const Theme &t) {
         "  ███████╗██╔██╗ ██║███████║█████╔╝ █████╗  ",
         "  ╚════██║██║╚██╗██║██╔══██║██╔═██╗ ██╔══╝  ",
         "  ███████║██║ ╚████║██║  ██║██║  ██╗███████╗",
-        "  ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝"
+        "  ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝"
     };
-    
     for (int i = 0; i < (int)lines.size(); i++) {
         Terminal::gotoXY(15, 5 + i);
         Terminal::setColor(t.uiColor);
         cout << lines[i];
         Terminal::sleep_ms(80);
     }
-    
     Terminal::gotoXY(20, 13);
     Terminal::setColor(t.foodColor);
     cout << "🎮 CROSS-PLATFORM EDITION 2025 🎮";
-    
     Terminal::gotoXY(25, 16);
     Terminal::setColor(10);
     cout << "Press any key to start...";
     Terminal::resetColor();
-    
     while (!Terminal::kbhit()) Terminal::sleep_ms(50);
     Terminal::getChar();
 }
@@ -401,33 +378,22 @@ int main() {
     srand((unsigned)time(0));
     Terminal::setupRawMode();
     Terminal::hideCursor();
-    
     #ifdef _WIN32
     system("chcp 65001 >nul");
     #endif
-    
     int currentTheme = selectTheme();
     Theme cur = themes[currentTheme];
     showTitle(cur);
-    
     const int H = 25, W = 78, OX = 1, OY = 5;
     bool playAgain = true;
     int highScore = 0;
     bool rainbowMode = false;
-    
     while (playAgain) {
         Terminal::clear();
         drawBox(W, H, OX, OY, cur.wallColor);
-        
         vector<Point> blocks = generateBlocks(W, H, 6, 3, 6, 6);
         drawBlocks(blocks, OX, OY, cur.blockColor);
-        
-        // vector<Point> snake = {{15, 10}};
-        vector<Point> snake = {
-    {15, 10},   // head
-    {14, 10}    // one more segment behind head
-    // you can also add {13, 10} for a 3-block start
-};
+        vector<Point> snake = {{15, 10}, {14, 10}};
         int len = 3, score = 0;
         Point food = generateFood(W, H, snake, blocks);
         char dir = 'd';
@@ -435,13 +401,10 @@ int main() {
         int speed = 5, delay = 120 - (speed * 10);
         auto lastMove = chrono::steady_clock::now();
         int currentFoodIndex = rand() % cur.foodEmojis.size();
-        
         while (!gameOver) {
             showScoreboard(score, speed, highScore, cur, rainbowMode);
-            
             if (Terminal::kbhit()) {
                 char k = Terminal::getChar();
-                
                 #ifdef _WIN32
                 if (k == -32 || k == 224) {
                     k = Terminal::getChar();
@@ -471,7 +434,6 @@ int main() {
                     else if (k == 'q' || k == 'Q') { playAgain = false; gameOver = true; break; }
                 }
             }
-            
             delay = 120 - (speed * 10);
             auto now = chrono::steady_clock::now();
             if (chrono::duration_cast<chrono::milliseconds>(now - lastMove).count() < delay) {
@@ -479,79 +441,46 @@ int main() {
                 continue;
             }
             lastMove = now;
-            
-            // Calculate new head position
             Point head = snake[0];
             if (dir == 'w') head.y--;
             else if (dir == 's') head.y++;
             else if (dir == 'a') head.x--;
             else head.x++;
-            
-            // Check collisions BEFORE modifying snake
-            if (head.x <= 0 || head.x >= W - 1 || head.y <= 0 || head.y >= H - 1) {
-                gameOver = true;
-                break; // Exit immediately without changing snake
-            }
-            if (hitBlock(blocks, head)) {
-                gameOver = true;
-                break; // Exit immediately without changing snake
-            }
-            for (auto &s : snake) {
-                if (s.x == head.x && s.y == head.y) {
-                    gameOver = true;
-                    break;
-                }
-            }
-            if (gameOver) break; // Exit immediately without changing snake
-            
-            // Check food collision BEFORE adding head
+            if (head.x <= 0 || head.x >= W - 1 || head.y <= 0 || head.y >= H - 1) { gameOver = true; break; }
+            if (hitBlock(blocks, head)) { gameOver = true; break; }
+            for (auto &s : snake) { if (s.x == head.x && s.y == head.y) { gameOver = true; break; } }
+            if (gameOver) break;
             bool ateFood = false;
-            if (head.x == food.x && head.y == food.y) {
+            if (head.y == food.y && std::abs(head.x - food.x) <= 1) {
                 ateFood = true;
                 score++;
                 if (score > highScore) highScore = score;
                 len++;
             }
-            
-            // Now safe to modify snake - add new head
             snake.insert(snake.begin(), head);
-            
-            // Remove tail if didn't eat food
             if (!ateFood) {
                 Point tail = snake.back();
                 snake.pop_back();
-                // Clear tail position
                 Terminal::gotoXY(tail.x + OX, tail.y + OY);
                 cout << " ";
             }
-            
-            // Generate new food AFTER snake is updated (if food was eaten)
             if (ateFood) {
-                // Clear old food position
                 Terminal::gotoXY(food.x + OX, food.y + OY);
                 cout << " ";
-                // Generate new food away from current snake position
                 Point newFood;
                 bool validFood = false;
-                int attempts = 0;
-                while (!validFood && attempts < 1000) {
+                int attempts2 = 0;
+                while (!validFood && attempts2 < 1000) {
                     newFood = generateFood(W, H, snake, blocks);
-                    // Make sure new food is not at same position as old food
-                    if (newFood.x != food.x || newFood.y != food.y) {
-                        validFood = true;
-                    }
-                    attempts++;
+                    if (newFood.x != food.x || newFood.y != food.y) validFood = true;
+                    attempts2++;
                 }
                 food = newFood;
                 currentFoodIndex = rand() % cur.foodEmojis.size();
             }
-            
-            // Draw food
             Terminal::gotoXY(food.x + OX, food.y + OY);
             Terminal::setColor(cur.foodColor);
             cout << cur.foodEmojis[currentFoodIndex];
-            
-            // Draw snake
             for (int i = 0; i < (int)snake.size(); i++) {
                 Terminal::gotoXY(snake[i].x + OX, snake[i].y + OY);
                 if (i == 0) {
@@ -567,17 +496,14 @@ int main() {
                     cout << "●";
                 }
             }
-            
-            // Redraw blocks to prevent them from disappearing
             drawBlocks(blocks, OX, OY, cur.blockColor);
             Terminal::resetColor();
         }
-        
         Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY);
         Terminal::setColor(12);
         cout << "╔══════════════════╗";
         Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY + 1);
-        cout << "║   GAME OVER!   ║";
+        cout << "║   GAME OVER!     ║";
         Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY + 2);
         cout << "╚══════════════════╝";
         Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY + 4);
@@ -589,7 +515,6 @@ int main() {
         Terminal::setColor(11);
         cout << "R = Restart  Q = Quit";
         Terminal::resetColor();
-        
         char ch;
         while (true) {
             if (Terminal::kbhit()) {
@@ -600,7 +525,6 @@ int main() {
             Terminal::sleep_ms(50);
         }
     }
-    
     Terminal::clear();
     Terminal::showCursor();
     Terminal::restoreMode();
