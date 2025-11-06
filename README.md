@@ -52,7 +52,8 @@ The main goal of this project is to develop a **simple yet visually engaging Sna
 ---
 
 ## 🧠 System Design
-Architecture Overview
+
+```
 ┌──────────────────────────────┐
 │          Game Loop           │
 │   (Timing, Rendering, Score) │
@@ -63,6 +64,10 @@ Architecture Overview
  ▼            ▼             ▼
 Snake     Food System    Renderer
 (Body)    (Randomize)    (Draws UI)
+
+```
+
+
 
 Component Description
 | Component         | Function                                          |
