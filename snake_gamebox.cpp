@@ -7,10 +7,10 @@
 #include <string>
 #include <algorithm>
 
-#ifdef _WIN32
+#ifdef _WIN32                       // Windows-specific includes
     #include <conio.h>
     #include <windows.h>
-#else
+#else                               // Unix-like system includes
     #include <termios.h>
     #include <unistd.h>
     #include <sys/ioctl.h>
@@ -21,16 +21,16 @@ using namespace std;
 
 struct Point { int x, y; };
 
-class Terminal {
+class Terminal {                    // Cross-platform terminal handling
 public:
-    static void clear() {
+    static void clear() {           // Clear the console
         #ifdef _WIN32
             system("cls");
         #else
             system("clear");
         #endif
     }
-    static void hideCursor() {
+    static void hideCursor() {      // Hide the console cursor
         #ifdef _WIN32
             HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
             CONSOLE_CURSOR_INFO info;
@@ -42,7 +42,7 @@ public:
             cout.flush();
         #endif
     }
-    static void showCursor() {
+    static void showCursor() {          // Show the console cursor
         #ifdef _WIN32
             HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
             CONSOLE_CURSOR_INFO info;
@@ -54,16 +54,16 @@ public:
             cout.flush();
         #endif
     }
-    static void gotoXY(int x, int y) {
+    static void gotoXY(int x, int y) {          // Move cursor to (x, y)
         #ifdef _WIN32
-            COORD pos = {(SHORT)x, (SHORT)y};
+            COORD pos = {(SHORT)x, (SHORT)y};       
             SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
         #else
             cout << "\033[" << (y + 1) << ";" << (x + 1) << "H";
             cout.flush();
         #endif
     }
-    static void setColor(int fg, int bg = 0) {
+    static void setColor(int fg, int bg = 0) {   // Set text color (fg: foreground, bg: background)
         #ifdef _WIN32
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fg + (bg * 16));
         #else
@@ -73,7 +73,7 @@ public:
             cout.flush();
         #endif
     }
-    static void resetColor() {
+    static void resetColor() {                      // Reset text color to default
         #ifdef _WIN32
             SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 15);
         #else
@@ -81,7 +81,7 @@ public:
             cout.flush();
         #endif
     }
-    static bool kbhit() {
+    static bool kbhit() {                       // Check if a key has been pressed
         #ifdef _WIN32
             return _kbhit();
         #else
@@ -92,14 +92,14 @@ public:
             return select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) > 0;
         #endif
     }
-    static char getChar() {
+    static char getChar() {                 // Get a single character input
         #ifdef _WIN32
             return _getch();
         #else
             return getchar();
         #endif
     }
-    static void setupRawMode() {
+    static void setupRawMode() {            // Set terminal to raw mode (Unix-like systems)
         #ifndef _WIN32
             struct termios t;
             tcgetattr(STDIN_FILENO, &t);
@@ -107,7 +107,7 @@ public:
             tcsetattr(STDIN_FILENO, TCSANOW, &t);
         #endif
     }
-    static void restoreMode() {
+    static void restoreMode() {             // Restore terminal to original mode (Unix-like systems)
         #ifndef _WIN32
             struct termios t;
             tcgetattr(STDIN_FILENO, &t);
@@ -115,12 +115,16 @@ public:
             tcsetattr(STDIN_FILENO, TCSANOW, &t);
         #endif
     }
-    static void sleep_ms(int ms) {
-        this_thread::sleep_for(chrono::milliseconds(ms));
-    }
+    static void sleep_ms(int ms) {          // Sleep for specified milliseconds
+    #ifdef _WIN32
+        Sleep(ms);
+    #else
+        usleep(ms * 1000);
+    #endif
+}
 };
 
-struct Theme {
+struct Theme {                              // Game theme structure
     string name;
     int wallColor, blockColor, headColor, bodyColor, foodColor, uiColor;
     vector<string> foodEmojis;
@@ -129,14 +133,15 @@ struct Theme {
           bodyColor(bo), foodColor(f), uiColor(ui), foodEmojis(fe) {}
 };
 
-vector<Theme> themes = {
-    Theme("🌟 Neon Tech", 11, 8, 14, 10, 13, 15, {"🍎", "🍊", "🍋", "🍇", "🍓"}),
-    Theme("🔥 Inferno", 12, 8, 14, 6, 9, 14, {"🌶", "🔥", "🍖", "🥓", "🍗"}),
-    Theme("🌿 Jungle", 10, 8, 10, 2, 13, 15, {"🍌", "🥥", "🍍", "🥭", "🍉"}),
-    Theme("❄  Ice", 11, 8, 15, 9, 11, 15, {"🧊", "❄", "🐟", "🦐", "🐙"}),
-    Theme("🎮 Retro", 14, 8, 14, 10, 13, 15, {"🍒", "🍑", "🍐", "🥝", "🫐"})
+vector<Theme> themes = {                    //Predefined game themes
+    Theme("🌟 Neon Tech", 11, 8, 14, 10, 13, 15, {"🍏", "🍒", "🍇", "★", "✦"}), 
+    Theme("🔥 Inferno", 12, 8, 14, 6, 9, 14, {"🍊", "🍋", "❤", "♦", "⬢"}),
+    Theme("🌿 Jungle", 10, 8, 10, 2, 13, 15, {"🍌", "🍉", "☘", "♣", "❀"}),
+    Theme("❄️  Ice", 11, 8, 15, 9, 11, 15, {"🍋", "☃", "❄", "✶", "✴"}),
+    Theme("🎮 Retro", 14, 8, 14, 10, 13, 15, {"🍒", "■", "●", "⬤", "◉"})
 };
 
+// Generate block positions with clustering
 vector<Point> generateBlocks(int w, int h, int clusterCount, int blockMin, int blockMax, int spacingMin) {
     vector<Point> blocks;
     for (int i = 0; i < clusterCount; i++) {
@@ -168,6 +173,7 @@ vector<Point> generateBlocks(int w, int h, int clusterCount, int blockMin, int b
     return blocks;
 }
 
+// Draw blocks on the screen
 void drawBlocks(const vector<Point> &blocks, int ox, int oy, int color) {
     Terminal::setColor(color);
     for (auto &b : blocks) {
@@ -177,11 +183,13 @@ void drawBlocks(const vector<Point> &blocks, int ox, int oy, int color) {
     Terminal::resetColor();
 }
 
+// Check if head hits any block
 bool hitBlock(const vector<Point> &blocks, const Point &h) {
     for (auto &b : blocks) if (b.x == h.x && b.y == h.y) return true;
     return false;
 }
 
+// Generate food position ensuring accessibility
 Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point> &blocks) {
     auto inside = [&](const Point& p) -> bool {
         return p.x > 0 && p.x < w - 1 && p.y > 0 && p.y < h - 1;
@@ -202,6 +210,7 @@ Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point>
         return cnt;
     };
 
+    // Try random positions first
     Point f;
     bool ok = false;
     int attempts = 0;
@@ -215,8 +224,8 @@ Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point>
         ok = true;
     }
 
+    // If random attempts fail, do a systematic search
     if (ok) return f;
-
     for (int y = 1; y < h - 1; ++y)
         for (int x = 1; x < w - 1; ++x) {
             Point c{x, y};
@@ -224,10 +233,10 @@ Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point>
             if (occupied(c)) continue;
             if (freeNeighborCount(c) >= 2) return c;
         }
-
     return snake.front();
 }
 
+// Draw game boundary box
 void drawBox(int w, int h, int ox, int oy, int color) {
     Terminal::setColor(color);
     for (int r = 0; r < h; r++) {
@@ -244,6 +253,7 @@ void drawBox(int w, int h, int ox, int oy, int color) {
     Terminal::resetColor();
 }
 
+// Theme selection menu
 int selectTheme() {
     int index = 0;
     bool changed = true;
@@ -296,8 +306,10 @@ int selectTheme() {
     }
 }
 
+// Show game title screen
 void showTitle(const Theme &t) {
     Terminal::clear();
+    // Display animated title
     vector<string> lines = {
         "  ███████╗███╗   ██╗ █████╗ ██╗  ██╗███████╗",
         "  ██╔════╝████╗  ██║██╔══██╗██║ ██╔╝██╔════╝",
@@ -306,12 +318,15 @@ void showTitle(const Theme &t) {
         "  ███████║██║ ╚████║██║  ██║██║  ██╗███████╗",
         "  ╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝"
     };
+
+    // Animate title display
     for (int i = 0; i < (int)lines.size(); i++) {
         Terminal::gotoXY(15, 5 + i);
         Terminal::setColor(t.uiColor);
         cout << lines[i];
         Terminal::sleep_ms(80);
     }
+    // Display subtitle and prompt
     Terminal::gotoXY(20, 13);
     Terminal::setColor(t.foodColor);
     cout << "🎮 CROSS-PLATFORM EDITION 2025 🎮";
@@ -323,6 +338,7 @@ void showTitle(const Theme &t) {
     Terminal::getChar();
 }
 
+// Show scoreboard at the top
 void showScoreboard(int score, int speed, int highScore, const Theme &t, bool rainbow) {
     Terminal::gotoXY(0, 0);
     Terminal::setColor(t.uiColor);
@@ -367,14 +383,16 @@ void showScoreboard(int score, int speed, int highScore, const Theme &t, bool ra
     Terminal::setColor(8);
     cout << " │ ";
     Terminal::setColor(12);
-    cout << "Q Quit";
+    cout << "P Pause │ C Continue │ Q Quit";
     Terminal::gotoXY(0, 3);
     Terminal::setColor(t.uiColor);
     cout << "╚════════════════════════════════════════════════════════════════════════════╝";
     Terminal::resetColor();
 }
 
+// Main game loop
 int main() {
+    // Initialize random seed and terminal
     srand((unsigned)time(0));
     Terminal::setupRawMode();
     Terminal::hideCursor();
@@ -388,6 +406,8 @@ int main() {
     bool playAgain = true;
     int highScore = 0;
     bool rainbowMode = false;
+
+    // Game restart loop
     while (playAgain) {
         Terminal::clear();
         drawBox(W, H, OX, OY, cur.wallColor);
@@ -398,11 +418,15 @@ int main() {
         Point food = generateFood(W, H, snake, blocks);
         char dir = 'd';
         bool gameOver = false;
+        bool paused = false;
         int speed = 5, delay = 120 - (speed * 10);
         auto lastMove = chrono::steady_clock::now();
         int currentFoodIndex = rand() % cur.foodEmojis.size();
+
+        // Main game loop
         while (!gameOver) {
             showScoreboard(score, speed, highScore, cur, rainbowMode);
+
             if (Terminal::kbhit()) {
                 char k = Terminal::getChar();
                 #ifdef _WIN32
@@ -431,25 +455,61 @@ int main() {
                     else if (k == '+' || k == '=') { if (speed < 10) speed++; }
                     else if (k == '-') { if (speed > 1) speed--; }
                     else if (k == 'r' || k == 'R') rainbowMode = !rainbowMode;
+                    else if (k == 'p' || k == 'P') paused = true;
+                    else if (k == 'c' || k == 'C') paused = false;
                     else if (k == 'q' || k == 'Q') { playAgain = false; gameOver = true; break; }
                 }
             }
+
             delay = 120 - (speed * 10);
+
+            // Pause screen logic
+            if (paused) {
+                Terminal::gotoXY(OX + W / 2 - 8, H / 2 + OY);
+                Terminal::setColor(14);
+                cout << "⏸️  GAME PAUSED  ⏸️";
+                Terminal::resetColor();
+
+                while (paused) {
+                    if (Terminal::kbhit()) {
+                        char key = Terminal::getChar();
+                        if (key == 'c' || key == 'C') {
+                            paused = false;
+                            Terminal::gotoXY(OX + W / 2 - 8, H / 2 + OY);
+                            cout << "                   ";
+                            break;
+                        }
+                        else if (key == 'q' || key == 'Q') {
+                            gameOver = true;
+                            playAgain = false;
+                            break;
+                        }
+                    }
+                    Terminal::sleep_ms(100);
+                }
+                if (gameOver) break;
+                continue;
+            }
+
+            // Movement timing control
             auto now = chrono::steady_clock::now();
             if (chrono::duration_cast<chrono::milliseconds>(now - lastMove).count() < delay) {
                 Terminal::sleep_ms(1);
                 continue;
             }
             lastMove = now;
+
             Point head = snake[0];
             if (dir == 'w') head.y--;
             else if (dir == 's') head.y++;
             else if (dir == 'a') head.x--;
             else head.x++;
+
             if (head.x <= 0 || head.x >= W - 1 || head.y <= 0 || head.y >= H - 1) { gameOver = true; break; }
             if (hitBlock(blocks, head)) { gameOver = true; break; }
             for (auto &s : snake) { if (s.x == head.x && s.y == head.y) { gameOver = true; break; } }
             if (gameOver) break;
+
             bool ateFood = false;
             if (head.y == food.y && std::abs(head.x - food.x) <= 1) {
                 ateFood = true;
@@ -457,6 +517,7 @@ int main() {
                 if (score > highScore) highScore = score;
                 len++;
             }
+
             snake.insert(snake.begin(), head);
             if (!ateFood) {
                 Point tail = snake.back();
@@ -464,6 +525,7 @@ int main() {
                 Terminal::gotoXY(tail.x + OX, tail.y + OY);
                 cout << " ";
             }
+
             if (ateFood) {
                 Terminal::gotoXY(food.x + OX, food.y + OY);
                 cout << " ";
@@ -478,9 +540,11 @@ int main() {
                 food = newFood;
                 currentFoodIndex = rand() % cur.foodEmojis.size();
             }
+
             Terminal::gotoXY(food.x + OX, food.y + OY);
             Terminal::setColor(cur.foodColor);
             cout << cur.foodEmojis[currentFoodIndex];
+
             for (int i = 0; i < (int)snake.size(); i++) {
                 Terminal::gotoXY(snake[i].x + OX, snake[i].y + OY);
                 if (i == 0) {
@@ -496,9 +560,12 @@ int main() {
                     cout << "●";
                 }
             }
+
             drawBlocks(blocks, OX, OY, cur.blockColor);
             Terminal::resetColor();
         }
+
+        // Game over screen
         Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY);
         Terminal::setColor(12);
         cout << "╔══════════════════╗";
@@ -515,6 +582,8 @@ int main() {
         Terminal::setColor(11);
         cout << "R = Restart  Q = Quit";
         Terminal::resetColor();
+
+        // Wait for restart or quit input
         char ch;
         while (true) {
             if (Terminal::kbhit()) {
@@ -525,6 +594,7 @@ int main() {
             Terminal::sleep_ms(50);
         }
     }
+
     Terminal::clear();
     Terminal::showCursor();
     Terminal::restoreMode();
