@@ -227,6 +227,23 @@ g++ -std=c++11 snake.cpp -o snake
 * Efficient vector management for snake body tracking.
 * Frame delay optimized for CPU efficiency and smooth animation.
 
+```
+🕒 Time Complexity Analysis
+| Operation                | Description                                                                                      | Time Complexity                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| **Main Game Loop**       | The loop updates the snake’s position, checks collisions, and redraws the screen for each frame. | **O(1)** per frame                                                                 |
+| **Snake Movement**       | Adding new head and removing tail (vector insert & pop_back).                                    | **O(n)** in the worst case (due to insert at beginning), where *n* = snake length  |
+| **Collision Check**      | Checks collision of head with snake body, blocks, and walls.                                     | **O(n + b)** per frame, where *b* = number of blocks                               |
+| **Food Generation**      | Randomly selects a position and verifies it's not occupied by snake or blocks.                   | **O(w × h)** in the worst case (board size), **O(1)** average due to randomization |
+| **Drawing (Rendering)**  | Drawing snake, food, and blocks on terminal.                                                     | **O(n + b)** per frame                                                             |
+| **Overall Game Runtime** | Considering `f` total frames played and average snake length `n`.                                | **O(f × (n + b))**                                                                 |
+```
+⏱️ Space Complexity
+
+Snake positions → O(n)
+Blocks positions → O(b)
+Food, theme, and UI elements → O(1)
+Total Space Complexity: O(n + b)
 
 
 ## 🔮 Future Enhancements
