@@ -11,10 +11,11 @@
 5. [Class Structure](#class-structure)
 6. [Technical Implementation](#technical-implementation)
 7. [Controls](#controls)
-8. [Installation & Execution](#installation--execution)
-9. [Performance and Optimization](#performance-and-optimization)
-10. [Future Enhancements](#future-enhancements)
-11. [Team Members](#team-members)
+8. [Screenshots](#screenshots)
+9. [Installation & Execution](#installation--execution)
+10. [Performance and Optimization](#performance-and-optimization)
+11. [Future Enhancements](#future-enhancements)
+12. [Team Members](#team-members)
 
 ---
 
@@ -192,6 +193,13 @@ Main functions in your loop include:
 | **+ / -** | Increase / Decrease Speed |
 | **R**     | Toggle Rainbow Mode       |
 | **Q**     | Quit the Game             |
+
+
+
+## 📸 Screenshots
+![demo_01](https://github.com/user-attachments/assets/8755a7c2-4bfc-4e1c-ad64-a01d41ad54f8)
+![demo_02](https://github.com/user-attachments/assets/72d8556b-5ca5-41bb-a2a6-0812b1b0f4d1)
+![demo_03](https://github.com/user-attachments/assets/344419ee-d426-4fff-9c4c-5eb94b15957a)
 
 
 
