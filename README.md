@@ -197,8 +197,14 @@ Main functions in your loop include:
 
 
 ## 📸 Screenshots
+
+### 🏁 Title Screen
 ![demo_01](https://github.com/user-attachments/assets/8755a7c2-4bfc-4e1c-ad64-a01d41ad54f8)
+
+### 🎮 Theme Selection
 ![demo_02](https://github.com/user-attachments/assets/72d8556b-5ca5-41bb-a2a6-0812b1b0f4d1)
+
+### 💀 Game Over Screen
 ![demo_03](https://github.com/user-attachments/assets/344419ee-d426-4fff-9c4c-5eb94b15957a)
 
 
