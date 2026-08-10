@@ -422,8 +422,8 @@ int main() {
         drawBlocks(blocks, OX, OY, cur.blockColor);
         vector<Point> snake1 = {{15, 8}, {14, 8}};
         vector<Point> snake2 = {{15, 16}, {14, 16}};
-        int len1 = 3, score1 = 0;
-        int len2 = 3, score2 = 0;
+        int score1 = 0;
+        int score2 = 0;
         Point food = generateFood(W, H, snake1, snake2, blocks);
         char dir1 = 'd';
         char dir2 = 'd';
@@ -522,18 +522,35 @@ int main() {
             else if (dir2 == 'a') head2.x--;
             else head2.x++;
 
+            bool ateFood1 = (head1.y == food.y && std::abs(head1.x - food.x) <= 1);
+            bool ateFood2 = (!ateFood1 && head2.y == food.y && std::abs(head2.x - food.x) <= 1);
+
             bool p1Lost = false;
             bool p2Lost = false;
 
+            if (head1.x == head2.x && head1.y == head2.y) {
+                p1Lost = true;
+                p2Lost = true;
+            }
+
             if (head1.x <= 0 || head1.x >= W - 1 || head1.y <= 0 || head1.y >= H - 1) p1Lost = true;
             if (hitBlock(blocks, head1)) p1Lost = true;
-            for (auto &s : snake1) { if (s.x == head1.x && s.y == head1.y) p1Lost = true; }
-            for (auto &s : snake2) { if (s.x == head1.x && s.y == head1.y) p1Lost = true; }
 
             if (head2.x <= 0 || head2.x >= W - 1 || head2.y <= 0 || head2.y >= H - 1) p2Lost = true;
             if (hitBlock(blocks, head2)) p2Lost = true;
-            for (auto &s : snake2) { if (s.x == head2.x && s.y == head2.y) p2Lost = true; }
-            for (auto &s : snake1) { if (s.x == head2.x && s.y == head2.y) p2Lost = true; }
+
+            int checkLen1 = ateFood1 ? (int)snake1.size() : (int)snake1.size() - 1;
+            int checkLen2 = ateFood2 ? (int)snake2.size() : (int)snake2.size() - 1;
+
+            for (int i = 0; i < checkLen1; i++) {
+                if (snake1[i].x == head1.x && snake1[i].y == head1.y) p1Lost = true;
+                if (snake1[i].x == head2.x && snake1[i].y == head2.y) p2Lost = true;
+            }
+
+            for (int i = 0; i < checkLen2; i++) {
+                if (snake2[i].x == head1.x && snake2[i].y == head1.y) p1Lost = true;
+                if (snake2[i].x == head2.x && snake2[i].y == head2.y) p2Lost = true;
+            }
 
             if (p1Lost || p2Lost) {
                 if (p1Lost && p2Lost) loserMsg = "BOTH PLAYERS LOST!";
@@ -543,20 +560,14 @@ int main() {
                 break;
             }
 
-            bool ateFood1 = false;
-            if (head1.y == food.y && std::abs(head1.x - food.x) <= 1) {
-                ateFood1 = true;
+            if (ateFood1) {
                 score1++;
                 if (score1 > highScore) highScore = score1;
-                len1++;
             }
 
-            bool ateFood2 = false;
-            if (!ateFood1 && head2.y == food.y && std::abs(head2.x - food.x) <= 1) {
-                ateFood2 = true;
+            if (ateFood2) {
                 score2++;
                 if (score2 > highScore) highScore = score2;
-                len2++;
             }
 
             snake1.insert(snake1.begin(), head1);

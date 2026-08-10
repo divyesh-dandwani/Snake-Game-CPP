@@ -17,8 +17,18 @@ The assistant analyzed the repository structure (`snake_gamebox.cpp`), ensured l
 2. `showScoreboard()` — Updated parameters to take `score1` and `score2` and displayed both player scores (`P1:` and `P2:`) along with controls (`P1:Arrows │ P2:WASD`).
 3. `main()` — Initialized two snake vectors (`snake1` and `snake2`), assigned Arrow keys to Player 1 and WASD to Player 2, implemented collision checks for wall/self/other-snake with announcements for which player lost, handled shared fruit growth, and rendered both snakes.
 
+### Prompt 2
+> PR Review Feedback:
+> 1) Collision resolution misses the case where both players move their heads into the same cell on the same tick (head1 == head2). Also body-collision loops include tail segment which produces false-positive collisions when snake moves without eating food.
+> 2) len1 and len2 are unused variables.
+
+### Relevant Reply Output (Code Produced)
+1. Updated collision logic in `main()` to explicitly handle head-to-head collisions (`head1.x == head2.x && head1.y == head2.y`), causing both players to lose.
+2. Evaluated food eating (`ateFood1`, `ateFood2`) prior to checking body collisions, dynamically calculating body check lengths (`checkLen = ateFood ? snake.size() : snake.size() - 1`) to prevent false-positive collisions on moving tail segments.
+3. Removed unused `len1` and `len2` variable declarations and increments.
+
 ### Attempt Outcome
-- **Working Attempt**: Attempt 1 worked on the first try.
-- **Errors/Failures in earlier attempts**: None. Compiled cleanly on first compilation attempt with `g++ -std=c++11 snake_gamebox.cpp -o snake.exe`.
-- **Total Prompts to Working Code**: 1 prompt.
-- **Code Provided to LLM**: Whole repository / `snake_gamebox.cpp` (read directly by the agent from workspace).
+- **Working Attempt**: Attempt 2 resolved all edge-case review findings.
+- **Errors/Failures in earlier attempts**: Initial version missed head-to-head edge case and included tail segment in non-growing body collision checks.
+- **Total Prompts to Working Code**: 2 prompts.
+- **Code Provided to LLM**: Whole repository / `snake_gamebox.cpp`.
