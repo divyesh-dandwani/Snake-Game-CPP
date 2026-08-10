@@ -190,12 +190,13 @@ bool hitBlock(const vector<Point> &blocks, const Point &h) {
 }
 
 // Generate food position ensuring accessibility
-Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point> &blocks) {
+Point generateFood(int w, int h, const vector<Point> &snake1, const vector<Point> &snake2, const vector<Point> &blocks) {
     auto inside = [&](const Point& p) -> bool {
         return p.x > 0 && p.x < w - 1 && p.y > 0 && p.y < h - 1;
     };
     auto occupied = [&](const Point& p) -> bool {
-        for (const auto& s : snake) if (s.x == p.x && s.y == p.y) return true;
+        for (const auto& s : snake1) if (s.x == p.x && s.y == p.y) return true;
+        for (const auto& s : snake2) if (s.x == p.x && s.y == p.y) return true;
         for (const auto& b : blocks) if (b.x == p.x && b.y == p.y) return true;
         return false;
     };
@@ -233,7 +234,7 @@ Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point>
             if (occupied(c)) continue;
             if (freeNeighborCount(c) >= 2) return c;
         }
-    return snake.front();
+    return snake1.front();
 }
 
 // Draw game boundary box
@@ -339,16 +340,22 @@ void showTitle(const Theme &t) {
 }
 
 // Show scoreboard at the top
-void showScoreboard(int score, int speed, int highScore, const Theme &t, bool rainbow) {
+void showScoreboard(int score1, int score2, int speed, int highScore, const Theme &t, bool rainbow) {
     Terminal::gotoXY(0, 0);
     Terminal::setColor(t.uiColor);
     cout << "╔════════════════════════════════════════════════════════════════════════════╗";
     Terminal::gotoXY(0, 1);
     cout << "║ ";
     Terminal::setColor(14);
-    cout << "SCORE: ";
+    cout << "P1: ";
     Terminal::setColor(t.bodyColor);
-    cout << score;
+    cout << score1;
+    Terminal::setColor(t.uiColor);
+    cout << "  │  ";
+    Terminal::setColor(14);
+    cout << "P2: ";
+    Terminal::setColor(t.bodyColor);
+    cout << score2;
     Terminal::setColor(t.uiColor);
     cout << "  │  ";
     Terminal::setColor(14);
@@ -371,7 +378,7 @@ void showScoreboard(int score, int speed, int highScore, const Theme &t, bool ra
     Terminal::setColor(t.uiColor);
     cout << "║ ";
     Terminal::setColor(10);
-    cout << "WASD/Arrows";
+    cout << "P1:Arrows │ P2:WASD";
     Terminal::setColor(8);
     cout << " │ ";
     Terminal::setColor(11);
@@ -413,45 +420,49 @@ int main() {
         drawBox(W, H, OX, OY, cur.wallColor);
         vector<Point> blocks = generateBlocks(W, H, 6, 3, 6, 6);
         drawBlocks(blocks, OX, OY, cur.blockColor);
-        vector<Point> snake = {{15, 10}, {14, 10}};
-        int len = 3, score = 0;
-        Point food = generateFood(W, H, snake, blocks);
-        char dir = 'd';
+        vector<Point> snake1 = {{15, 8}, {14, 8}};
+        vector<Point> snake2 = {{15, 16}, {14, 16}};
+        int score1 = 0;
+        int score2 = 0;
+        Point food = generateFood(W, H, snake1, snake2, blocks);
+        char dir1 = 'd';
+        char dir2 = 'd';
         bool gameOver = false;
         bool paused = false;
         int speed = 5, delay = 120 - (speed * 10);
         auto lastMove = chrono::steady_clock::now();
         int currentFoodIndex = rand() % cur.foodEmojis.size();
+        string loserMsg = "";
 
         // Main game loop
         while (!gameOver) {
-            showScoreboard(score, speed, highScore, cur, rainbowMode);
+            showScoreboard(score1, score2, speed, highScore, cur, rainbowMode);
 
             if (Terminal::kbhit()) {
                 char k = Terminal::getChar();
                 #ifdef _WIN32
                 if (k == -32 || k == 224) {
                     k = Terminal::getChar();
-                    if (k == 72 && dir != 's') dir = 'w';
-                    else if (k == 80 && dir != 'w') dir = 's';
-                    else if (k == 75 && dir != 'd') dir = 'a';
-                    else if (k == 77 && dir != 'a') dir = 'd';
+                    if (k == 72 && dir1 != 's') dir1 = 'w';
+                    else if (k == 80 && dir1 != 'w') dir1 = 's';
+                    else if (k == 75 && dir1 != 'd') dir1 = 'a';
+                    else if (k == 77 && dir1 != 'a') dir1 = 'd';
                 }
                 #else
                 if (k == 27) {
                     Terminal::getChar();
                     k = Terminal::getChar();
-                    if (k == 'A' && dir != 's') dir = 'w';
-                    else if (k == 'B' && dir != 'w') dir = 's';
-                    else if (k == 'D' && dir != 'd') dir = 'a';
-                    else if (k == 'C' && dir != 'a') dir = 'd';
+                    if (k == 'A' && dir1 != 's') dir1 = 'w';
+                    else if (k == 'B' && dir1 != 'w') dir1 = 's';
+                    else if (k == 'D' && dir1 != 'd') dir1 = 'a';
+                    else if (k == 'C' && dir1 != 'a') dir1 = 'd';
                 }
                 #endif
                 else {
-                    if ((k == 'w' || k == 'W') && dir != 's') dir = 'w';
-                    else if ((k == 's' || k == 'S') && dir != 'w') dir = 's';
-                    else if ((k == 'a' || k == 'A') && dir != 'd') dir = 'a';
-                    else if ((k == 'd' || k == 'D') && dir != 'a') dir = 'd';
+                    if ((k == 'w' || k == 'W') && dir2 != 's') dir2 = 'w';
+                    else if ((k == 's' || k == 'S') && dir2 != 'w') dir2 = 's';
+                    else if ((k == 'a' || k == 'A') && dir2 != 'd') dir2 = 'a';
+                    else if ((k == 'd' || k == 'D') && dir2 != 'a') dir2 = 'd';
                     else if (k == '+' || k == '=') { if (speed < 10) speed++; }
                     else if (k == '-') { if (speed > 1) speed--; }
                     else if (k == 'r' || k == 'R') rainbowMode = !rainbowMode;
@@ -499,41 +510,90 @@ int main() {
             }
             lastMove = now;
 
-            Point head = snake[0];
-            if (dir == 'w') head.y--;
-            else if (dir == 's') head.y++;
-            else if (dir == 'a') head.x--;
-            else head.x++;
+            Point head1 = snake1[0];
+            if (dir1 == 'w') head1.y--;
+            else if (dir1 == 's') head1.y++;
+            else if (dir1 == 'a') head1.x--;
+            else head1.x++;
 
-            if (head.x <= 0 || head.x >= W - 1 || head.y <= 0 || head.y >= H - 1) { gameOver = true; break; }
-            if (hitBlock(blocks, head)) { gameOver = true; break; }
-            for (auto &s : snake) { if (s.x == head.x && s.y == head.y) { gameOver = true; break; } }
-            if (gameOver) break;
+            Point head2 = snake2[0];
+            if (dir2 == 'w') head2.y--;
+            else if (dir2 == 's') head2.y++;
+            else if (dir2 == 'a') head2.x--;
+            else head2.x++;
 
-            bool ateFood = false;
-            if (head.y == food.y && std::abs(head.x - food.x) <= 1) {
-                ateFood = true;
-                score++;
-                if (score > highScore) highScore = score;
-                len++;
+            bool ateFood1 = (head1.y == food.y && std::abs(head1.x - food.x) <= 1);
+            bool ateFood2 = (!ateFood1 && head2.y == food.y && std::abs(head2.x - food.x) <= 1);
+
+            bool p1Lost = false;
+            bool p2Lost = false;
+
+            if (head1.x == head2.x && head1.y == head2.y) {
+                p1Lost = true;
+                p2Lost = true;
             }
 
-            snake.insert(snake.begin(), head);
-            if (!ateFood) {
-                Point tail = snake.back();
-                snake.pop_back();
+            if (head1.x <= 0 || head1.x >= W - 1 || head1.y <= 0 || head1.y >= H - 1) p1Lost = true;
+            if (hitBlock(blocks, head1)) p1Lost = true;
+
+            if (head2.x <= 0 || head2.x >= W - 1 || head2.y <= 0 || head2.y >= H - 1) p2Lost = true;
+            if (hitBlock(blocks, head2)) p2Lost = true;
+
+            int checkLen1 = ateFood1 ? (int)snake1.size() : (int)snake1.size() - 1;
+            int checkLen2 = ateFood2 ? (int)snake2.size() : (int)snake2.size() - 1;
+
+            for (int i = 0; i < checkLen1; i++) {
+                if (snake1[i].x == head1.x && snake1[i].y == head1.y) p1Lost = true;
+                if (snake1[i].x == head2.x && snake1[i].y == head2.y) p2Lost = true;
+            }
+
+            for (int i = 0; i < checkLen2; i++) {
+                if (snake2[i].x == head1.x && snake2[i].y == head1.y) p1Lost = true;
+                if (snake2[i].x == head2.x && snake2[i].y == head2.y) p2Lost = true;
+            }
+
+            if (p1Lost || p2Lost) {
+                if (p1Lost && p2Lost) loserMsg = "BOTH PLAYERS LOST!";
+                else if (p1Lost) loserMsg = "PLAYER 1 LOST!";
+                else loserMsg = "PLAYER 2 LOST!";
+                gameOver = true;
+                break;
+            }
+
+            if (ateFood1) {
+                score1++;
+                if (score1 > highScore) highScore = score1;
+            }
+
+            if (ateFood2) {
+                score2++;
+                if (score2 > highScore) highScore = score2;
+            }
+
+            snake1.insert(snake1.begin(), head1);
+            if (!ateFood1) {
+                Point tail = snake1.back();
+                snake1.pop_back();
                 Terminal::gotoXY(tail.x + OX, tail.y + OY);
                 cout << " ";
             }
 
-            if (ateFood) {
+            snake2.insert(snake2.begin(), head2);
+            if (!ateFood2) {
+                Point tail = snake2.back();
+                snake2.pop_back();
+                Terminal::gotoXY(tail.x + OX, tail.y + OY);
+                cout << " ";
+            }
+
+            if (ateFood1 || ateFood2) {
                 Terminal::gotoXY(food.x + OX, food.y + OY);
                 cout << " ";
                 Point newFood;
                 bool validFood = false;
                 int attempts2 = 0;
                 while (!validFood && attempts2 < 1000) {
-                    newFood = generateFood(W, H, snake, blocks);
+                    newFood = generateFood(W, H, snake1, snake2, blocks);
                     if (newFood.x != food.x || newFood.y != food.y) validFood = true;
                     attempts2++;
                 }
@@ -545,8 +605,24 @@ int main() {
             Terminal::setColor(cur.foodColor);
             cout << cur.foodEmojis[currentFoodIndex];
 
-            for (int i = 0; i < (int)snake.size(); i++) {
-                Terminal::gotoXY(snake[i].x + OX, snake[i].y + OY);
+            for (int i = 0; i < (int)snake1.size(); i++) {
+                Terminal::gotoXY(snake1[i].x + OX, snake1[i].y + OY);
+                if (i == 0) {
+                    Terminal::setColor(cur.headColor);
+                    cout << "◉";
+                } else {
+                    if (rainbowMode) {
+                        int col = (i % 6) + 9;
+                        Terminal::setColor(col);
+                    } else {
+                        Terminal::setColor(cur.bodyColor);
+                    }
+                    cout << "●";
+                }
+            }
+
+            for (int i = 0; i < (int)snake2.size(); i++) {
+                Terminal::gotoXY(snake2[i].x + OX, snake2[i].y + OY);
                 if (i == 0) {
                     Terminal::setColor(cur.headColor);
                     cout << "◉";
@@ -566,19 +642,26 @@ int main() {
         }
 
         // Game over screen
-        Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY);
+        Terminal::gotoXY(OX + W / 2 - 12, H / 2 + OY);
         Terminal::setColor(12);
-        cout << "╔══════════════════╗";
-        Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY + 1);
-        cout << "║   GAME OVER!     ║";
-        Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY + 2);
-        cout << "╚══════════════════╝";
-        Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY + 4);
+        cout << "╔════════════════════════╗";
+        Terminal::gotoXY(OX + W / 2 - 12, H / 2 + OY + 1);
+        cout << "║   GAME OVER!           ║";
+        Terminal::gotoXY(OX + W / 2 - 12, H / 2 + OY + 2);
+        cout << "╚════════════════════════╝";
+        Terminal::gotoXY(OX + W / 2 - 12, H / 2 + OY + 3);
         Terminal::setColor(14);
-        cout << "Score: ";
+        cout << " " << loserMsg;
+        Terminal::gotoXY(OX + W / 2 - 12, H / 2 + OY + 5);
+        Terminal::setColor(14);
+        cout << "P1: ";
         Terminal::setColor(10);
-        cout << score;
-        Terminal::gotoXY(OX + W / 2 - 10, H / 2 + OY + 6);
+        cout << score1;
+        Terminal::setColor(14);
+        cout << " │ P2: ";
+        Terminal::setColor(10);
+        cout << score2;
+        Terminal::gotoXY(OX + W / 2 - 12, H / 2 + OY + 7);
         Terminal::setColor(11);
         cout << "R = Restart  Q = Quit";
         Terminal::resetColor();
