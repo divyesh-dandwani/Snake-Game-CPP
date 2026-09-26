@@ -189,8 +189,26 @@ bool hitBlock(const vector<Point> &blocks, const Point &h) {
     return false;
 }
 
+// Seam: Abstract interface for random number generation
+class IRandom {
+public:
+    virtual ~IRandom() = default;
+    virtual int nextInt(int max) = 0;
+};
+
+// Default production implementation using C runtime rand()
+class DefaultRandom : public IRandom {
+public:
+    int nextInt(int max) override {
+        return (max > 0) ? (rand() % max) : 0;
+    }
+};
+
 // Generate food position ensuring accessibility
-Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point> &blocks) {
+Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point> &blocks, IRandom* rng = nullptr) {
+    DefaultRandom defaultRng;
+    if (!rng) rng = &defaultRng;
+
     auto inside = [&](const Point& p) -> bool {
         return p.x > 0 && p.x < w - 1 && p.y > 0 && p.y < h - 1;
     };
@@ -216,8 +234,8 @@ Point generateFood(int w, int h, const vector<Point> &snake, const vector<Point>
     int attempts = 0;
 
     while (!ok && attempts < 1000) {
-        f.x = rand() % (w - 4) + 2;
-        f.y = rand() % (h - 4) + 2;
+        f.x = rng->nextInt(w - 4) + 2;
+        f.y = rng->nextInt(h - 4) + 2;
         if (!inside(f)) { attempts++; continue; }
         if (occupied(f)) { attempts++; continue; }
         if (freeNeighborCount(f) < 2) { attempts++; continue; }
@@ -391,6 +409,7 @@ void showScoreboard(int score, int speed, int highScore, const Theme &t, bool ra
 }
 
 // Main game loop
+#ifndef UNIT_TEST
 int main() {
     // Initialize random seed and terminal
     srand((unsigned)time(0));
@@ -603,3 +622,4 @@ int main() {
     Terminal::resetColor();
     return 0;
 }
+#endif
